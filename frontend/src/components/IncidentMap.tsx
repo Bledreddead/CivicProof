@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
@@ -24,6 +25,8 @@ type Incident = {
 };
 
 export default function IncidentMap() {
+  const { session, profile, loading: authLoading } = useAuth();
+
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const hasAutoCentered = useRef(false);
@@ -35,14 +38,23 @@ export default function IncidentMap() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
 
-  // Fetch real incidents from FastAPI.
+  // Fetch incidents only after verifying the administrator session.
   const loadReports = useCallback(async () => {
+    if (!session?.access_token || profile?.role !== "admin") {
+      setReports([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
       const response = await fetch(`${API_URL}/reports`, {
         cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       const data = await response.json();
@@ -62,11 +74,20 @@ export default function IncidentMap() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.access_token, profile?.role]);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!session?.access_token || profile?.role !== "admin") {
+      setReports([]);
+      setLoading(false);
+      setError("Administrator access required.");
+      return;
+    }
+
     void loadReports();
-  }, [loadReports]);
+  }, [authLoading, session?.access_token, profile?.role, loadReports]);
 
   // Only reports with valid GPS coordinates are mapped.
   const mappedReports = useMemo(() => {
