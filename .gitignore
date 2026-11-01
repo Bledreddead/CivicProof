@@ -1,0 +1,33 @@
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Next.js
+node_modules/
+.next/
+out/
+
+# Build files
+dist/
+build/
+
+# Local system files
+.DS_Store
+Thumbs.db
+
+# CivicProof local backups and generated archives
+*.bak
+*.backup
+*-backup*/
+civicproof-frontend-source.zip
+civicproof-deployment-backups/
+
+# Local inspection files
+frontend/frontend-inspection.txt
